@@ -626,12 +626,20 @@ html, body {
 .block:hover   { background: var(--bg-hover); }
 .block:focus   { background: transparent !important; }
 
-/* Shared placeholder */
+/* Shared placeholder — always visible on empty blocks */
 .block[data-placeholder]:empty::before,
 .todo-text[data-placeholder]:empty::before {
   content: attr(data-placeholder);
   color: var(--text-placeholder);
   pointer-events: none;
+}
+
+/* Paragraph placeholder only shows when the block is focused */
+.block-paragraph[data-placeholder]:empty::before {
+  content: '';
+}
+.block-paragraph[data-placeholder]:empty:focus::before {
+  content: attr(data-placeholder);
 }
 
 /* Paragraph */
