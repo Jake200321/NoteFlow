@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;">
+  <title>NoteFlow</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="app-header">
+          <span class="app-icon">✦</span>
+          <span class="app-name">NoteFlow</span>
+          <button class="theme-btn" id="themeBtn" title="Toggle theme">🌙</button>
+        </div>
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input type="text" class="search-input" id="searchInput" placeholder="Search pages…">
+          <button class="search-clear" id="searchClear">×</button>
+        </div>
+      </div>
+
+      <div class="sidebar-content">
+        <div class="sidebar-section" id="pinnedSection" style="display:none">
+          <div class="section-label">PINNED</div>
+          <div class="pages-list" id="pinnedList"></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="section-label-row">
+            <span class="section-label">PAGES</span>
+            <div class="view-toggle">
+              <button class="view-btn" id="viewFlat"    title="List view">☰</button>
+              <button class="view-btn" id="viewFolders" title="Group by tag">🗂</button>
+            </div>
+          </div>
+          <div id="pagesList"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-bottom">
+        <button class="new-page-btn" id="newPageBtn">
+          <span class="new-page-plus">+</span> New Page
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Main Area ── -->
+    <main class="main" id="main">
+
+      <!-- Welcome state -->
+      <div class="welcome" id="welcome">
+        <div class="welcome-inner">
+          <div class="welcome-icon">✦</div>
+          <h1>Welcome to NoteFlow</h1>
+          <p>Your ideas, organized beautifully.</p>
+          <button class="btn-primary" id="welcomeNewBtn">Create your first page</button>
+        </div>
+      </div>
+
+      <!-- Editor -->
+      <div class="editor" id="editor" style="display:none">
+        <div class="editor-scroll">
+          <div class="editor-inner">
+
+            <div class="editor-header">
+              <button class="page-emoji-btn" id="pageEmojiBtn" title="Change icon">📄</button>
+              <div class="page-title-wrap">
+                <div class="page-title"
+                     id="pageTitle"
+                     contenteditable="true"
+                     data-placeholder="Untitled"
+                     spellcheck="true"></div>
+              </div>
+              <div class="page-actions">
+                <button class="action-btn" id="pinBtn" title="Pin page">📌</button>
+                <button class="action-btn danger" id="deleteBtn" title="Delete page">🗑</button>
+              </div>
+            </div>
+
+            <div class="page-meta" id="pageMeta">
+              <div class="tags-row">
+                <div class="tag-chips" id="tagChips"></div>
+                <button class="add-tag-btn" id="addTagBtn">＋ Tag</button>
+              </div>
+              <div class="page-date" id="pageDate"></div>
+            </div>
+
+            <div class="blocks-container" id="blocksContainer"></div>
+
+            <div class="editor-footer">
+              <button class="add-footer-btn" id="addFooterBtn">
+                + Click to add a block
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ── Slash menu ── -->
+  <div class="slash-menu" id="slashMenu">
+    <div class="slash-menu-header">Block type</div>
+    <div id="slashMenuItems"></div>
+  </div>
+
+  <!-- ── Formatting toolbar ── -->
+  <div class="format-toolbar" id="formatToolbar">
+    <button class="fmt-btn" data-cmd="bold"          title="Bold ⌘B"><b>B</b></button>
+    <button class="fmt-btn" data-cmd="italic"        title="Italic ⌘I"><i>I</i></button>
+    <button class="fmt-btn" data-cmd="underline"     title="Underline ⌘U"><u>U</u></button>
+    <button class="fmt-btn" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+    <div class="fmt-sep"></div>
+    <button class="fmt-btn" data-cmd="hiliteColor" data-val="#FFF176" title="Highlight">▐</button>
+    <div class="fmt-sep"></div>
+    <button class="fmt-btn" data-action="h1"   title="Heading 1">H1</button>
+    <button class="fmt-btn" data-action="h2"   title="Heading 2">H2</button>
+    <button class="fmt-btn" data-action="todo" title="To-do">☑</button>
+  </div>
+
+  <!-- ── Emoji picker ── -->
+  <div class="emoji-picker" id="emojiPicker">
+    <div class="emoji-search-wrap">
+      <input type="text" class="emoji-search" id="emojiSearch" placeholder="Search emoji…">
+    </div>
+    <div class="emoji-grid" id="emojiGrid"></div>
+  </div>
+
+  <!-- ── Tag input popup ── -->
+  <div class="tag-popup" id="tagPopup" style="display:none">
+    <input type="text" class="tag-popup-input" id="tagPopupInput" placeholder="Tag name… then Enter">
+  </div>
+
+  <!-- ── Block selection bar ── -->
+  <div class="block-sel-bar" id="blockSelBar" style="display:none">
+    <span class="block-sel-count" id="blockSelCount">0 blocks selected</span>
+    <div class="fmt-sep"></div>
+    <button class="block-sel-btn" id="blockSelDuplicate">Duplicate</button>
+    <button class="block-sel-btn danger" id="blockSelDelete">Delete</button>
+    <div class="fmt-sep"></div>
+    <button class="block-sel-btn" id="blockSelClear">✕</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
