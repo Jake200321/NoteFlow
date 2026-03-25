@@ -77,6 +77,37 @@ html, body {
   display: flex;
   height: 100vh;
   overflow: hidden;
+  position: relative;
+}
+
+/* ── Window drag bar ──────────────────────────────────────────
+   Sits behind all content. Gives a drag region across the full
+   top of the window so the window can be moved from anywhere
+   in the top strip (not just the sidebar).
+   Interactive elements above this use position:relative + z-index
+   to sit on top and remain clickable.
+─────────────────────────────────────────────────────────────── */
+.win-drag-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 52px;
+  -webkit-app-region: drag;
+  z-index: 0;
+}
+
+/* All interactive elements that sit in the top 52px must be
+   above the drag bar and marked no-drag */
+.app-header,
+.header-actions,
+.theme-btn,
+.sidebar-collapse-btn,
+.page-actions,
+.action-btn,
+.page-emoji-btn,
+.page-title-wrap {
+  -webkit-app-region: no-drag;
+  position: relative;
+  z-index: 2;
 }
 
 /* ============================================================
@@ -128,30 +159,70 @@ html, body {
 }
 .sidebar-collapse-btn:hover { opacity: 1; }
 
-/* Sidebar reveal tab (shown when sidebar is collapsed) */
-.sidebar-reveal-btn {
+/* ── Sidebar hover zone ───────────────────────────────────────
+   Invisible trigger strip on the left edge. On hover a panel
+   slides in from the left. Only shown when sidebar is hidden.
+─────────────────────────────────────────────────────────────── */
+.sidebar-hover-zone {
   position: fixed;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0; left: 0;
+  width: 20px;
+  height: 100vh;
   z-index: 800;
+  display: none;
+  -webkit-app-region: no-drag;
+}
+.sidebar-hover-panel {
+  position: absolute;
+  top: 48px; left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
   background: var(--bg-sidebar);
   border: 1px solid var(--border);
   border-left: none;
-  border-radius: 0 6px 6px 0;
-  padding: 10px 5px;
-  font-size: 14px;
-  color: var(--text-secondary);
+  border-radius: 0 12px 12px 0;
+  padding: 16px 18px 16px 16px;
+  box-shadow: var(--shadow-lg);
+  transform: translateX(-110%);
+  transition: transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
+  pointer-events: none;
+  min-width: 160px;
+}
+.sidebar-hover-zone:hover .sidebar-hover-panel {
+  transform: translateX(0);
+  pointer-events: auto;
+}
+.hover-panel-logo {
+  font-size: 22px;
+  color: var(--accent);
+  line-height: 1;
+}
+.hover-panel-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+.hover-panel-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  display: none;
-  transition: background var(--ease), color var(--ease);
+  font-family: inherit;
+  transition: opacity var(--ease);
   -webkit-app-region: no-drag;
 }
-.sidebar-reveal-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.hover-panel-btn:hover { opacity: 0.85; }
 
 /* Collapsed state */
 .app.sidebar-hidden .sidebar { width: 0; min-width: 0; border-right: none; overflow: hidden; }
-.app.sidebar-hidden .sidebar-reveal-btn { display: block; }
+.app.sidebar-hidden .sidebar-hover-zone { display: block; }
 .app-icon {
   font-size: 18px;
   color: var(--accent);

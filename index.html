@@ -10,6 +10,18 @@
 <body>
   <div class="app" id="app">
 
+    <!-- ── Window drag bar (invisible, sits behind everything) ── -->
+    <div class="win-drag-bar"></div>
+
+    <!-- ── Sidebar hover zone (shown when sidebar is hidden) ── -->
+    <div class="sidebar-hover-zone" id="sidebarHoverZone">
+      <div class="sidebar-hover-panel">
+        <div class="hover-panel-logo">✦</div>
+        <span class="hover-panel-label">NoteFlow</span>
+        <button class="hover-panel-btn" id="sidebarReveal">Show Sidebar</button>
+      </div>
+    </div>
+
     <!-- ── Sidebar ── -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-top">
@@ -51,9 +63,6 @@
         </button>
       </div>
     </aside>
-
-    <!-- ── Sidebar reveal tab (shown when sidebar is hidden) ── -->
-    <button class="sidebar-reveal-btn" id="sidebarReveal" title="Show sidebar">›</button>
 
     <!-- ── Main Area ── -->
     <main class="main" id="main">
