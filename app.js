@@ -360,6 +360,8 @@ function buildContent(block, page, idx) {
       rb.className = 'img-replace-btn'; rb.textContent = 'Replace image';
       rb.addEventListener('click', () => doUpload(block, page, div));
       div.appendChild(rb);
+      // Right-click context menu
+      img.addEventListener('contextmenu', e => showImgCtxMenu(e, block, page));
     } else {
       const area = document.createElement('div');
       area.className = 'image-upload-area';
@@ -778,6 +780,8 @@ function startRename(id) {
 
 // ── Global event wiring ───────────────────────────────────
 function wire() {
+  wireImgCtxMenu();
+
   // New page
   document.getElementById('newPageBtn').addEventListener('click', newPage);
   document.getElementById('welcomeNewBtn').addEventListener('click', newPage);
@@ -1093,6 +1097,63 @@ function wireBlockSel() {
   document.getElementById('blockSelDelete').addEventListener('click', deleteSelBlocks);
   document.getElementById('blockSelDuplicate').addEventListener('click', duplicateSelBlocks);
   document.getElementById('blockSelClear').addEventListener('click', clearBlockSel);
+}
+
+// ── Image context menu ────────────────────────────────────
+let _imgCtxBlock = null;
+let _imgCtxPage  = null;
+
+function showImgCtxMenu(e, block, page) {
+  e.preventDefault();
+  _imgCtxBlock = block;
+  _imgCtxPage  = page;
+
+  const menu = document.getElementById('imgCtxMenu');
+  menu.classList.add('visible');
+
+  // Position near cursor, nudge inside viewport
+  const menuW = 170, menuH = 80;
+  let x = e.clientX, y = e.clientY;
+  if (x + menuW > window.innerWidth)  x = window.innerWidth  - menuW - 8;
+  if (y + menuH > window.innerHeight) y = window.innerHeight - menuH - 8;
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+}
+
+function hideImgCtxMenu() {
+  document.getElementById('imgCtxMenu').classList.remove('visible');
+  _imgCtxBlock = null;
+  _imgCtxPage  = null;
+}
+
+function wireImgCtxMenu() {
+  // Delete image block entirely
+  document.getElementById('imgCtxDelete').addEventListener('click', () => {
+    if (!_imgCtxBlock || !_imgCtxPage) return;
+    const idx = _imgCtxPage.blocks.findIndex(b => b.id === _imgCtxBlock.id);
+    if (idx !== -1) {
+      _imgCtxPage.blocks.splice(idx, 1);
+      touch(_imgCtxPage); schedSave();
+      rerenderBlocks(_imgCtxPage);
+    }
+    hideImgCtxMenu();
+  });
+
+  // Replace image (reuse existing upload flow)
+  document.getElementById('imgCtxReplace').addEventListener('click', () => {
+    if (!_imgCtxBlock || !_imgCtxPage) return;
+    const block = _imgCtxBlock, page = _imgCtxPage;
+    hideImgCtxMenu();
+    doUpload(block, page, document.querySelector(`[data-id="${block.id}"]`));
+  });
+
+  // Close on click anywhere else
+  document.addEventListener('click', e => {
+    if (!document.getElementById('imgCtxMenu').contains(e.target)) hideImgCtxMenu();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') hideImgCtxMenu();
+  });
 }
 
 // ── Init ──────────────────────────────────────────────────

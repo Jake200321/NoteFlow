@@ -941,6 +941,45 @@ html, body {
 .block-image:hover .img-replace-btn { display: block; }
 .img-replace-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+/* ── Image context menu ── */
+.img-ctx-menu {
+  position: fixed;
+  z-index: 2000;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 5px;
+  box-shadow: var(--shadow-lg);
+  min-width: 160px;
+  display: none;
+}
+.img-ctx-menu.visible { display: block; }
+.img-ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--ease);
+}
+.img-ctx-item:hover { background: var(--bg-hover); }
+.img-ctx-item.danger { color: #e53e3e; }
+.img-ctx-item.danger:hover { background: #fff5f5; }
+[data-theme="dark"] .img-ctx-item.danger:hover { background: #2d1515; }
+.img-ctx-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
 /* Divider */
 .block-divider { padding: 10px 0; cursor: default; }
 .block-divider hr {
