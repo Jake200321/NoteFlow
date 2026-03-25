@@ -107,6 +107,51 @@ html, body {
   gap: 8px;
   padding: 4px 8px 8px;
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+/* Sidebar collapse button */
+.sidebar-collapse-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 3px 6px;
+  border-radius: var(--r);
+  color: var(--text-secondary);
+  opacity: 0.55;
+  transition: opacity var(--ease), transform var(--ease);
+  line-height: 1;
+}
+.sidebar-collapse-btn:hover { opacity: 1; }
+
+/* Sidebar reveal tab (shown when sidebar is collapsed) */
+.sidebar-reveal-btn {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 800;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  padding: 10px 5px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: none;
+  transition: background var(--ease), color var(--ease);
+  -webkit-app-region: no-drag;
+}
+.sidebar-reveal-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* Collapsed state */
+.app.sidebar-hidden .sidebar { width: 0; min-width: 0; border-right: none; overflow: hidden; }
+.app.sidebar-hidden .sidebar-reveal-btn { display: block; }
 .app-icon {
   font-size: 18px;
   color: var(--accent);
@@ -951,6 +996,50 @@ html, body {
 }
 .fmt-btn:hover { background: var(--bg-hover); }
 .fmt-sep { width: 1px; height: 18px; background: var(--border); margin: 0 2px; }
+
+/* Highlight colour group */
+.highlight-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+}
+.highlight-icon {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-right: 1px;
+  user-select: none;
+}
+.hi-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,0.15);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s, box-shadow 0.1s;
+  flex-shrink: 0;
+}
+.hi-swatch:hover { transform: scale(1.25); box-shadow: 0 0 0 2px var(--accent); }
+.hi-none {
+  background: var(--bg-editor) !important;
+  font-size: 9px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--border);
+}
+
+/* Normalize button */
+.fmt-btn[data-action="normalize"] {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  opacity: 0.75;
+}
+.fmt-btn[data-action="normalize"]:hover { opacity: 1; background: var(--bg-hover); }
 
 /* ============================================================
    Emoji picker

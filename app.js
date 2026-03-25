@@ -705,6 +705,17 @@ function handleSel() {
 
 function hideToolbar() { document.getElementById('formatToolbar').classList.remove('show'); }
 
+function persistBlocks() {
+  const p = curPage(); if (!p) return;
+  p.blocks.forEach(b => {
+    const el = document.querySelector(`.block[data-block-id="${b.id}"]`);
+    if (el?.contentEditable === 'true') b.content = el.innerHTML;
+    const tx = el?.querySelector?.('.todo-text, .callout-text');
+    if (tx) b.content = tx.innerHTML;
+  });
+  touch(p); schedSave();
+}
+
 // ── Tags ──────────────────────────────────────────────────
 function addTag(page, raw) {
   const tag = raw.trim().toLowerCase();
@@ -888,19 +899,10 @@ function wire() {
 
       if (cmd) {
         document.execCommand(cmd, false, val || null);
-        // Persist changes to block content
-        const p = curPage(); if (!p) return;
-        p.blocks.forEach(b => {
-          const el = document.querySelector(`.block[data-block-id="${b.id}"]`);
-          if (el?.contentEditable === 'true') b.content = el.innerHTML;
-          const tx = el?.querySelector?.('.todo-text, .callout-text');
-          if (tx) b.content = tx.innerHTML;
-        });
-        touch(p); schedSave();
+        persistBlocks();
       }
       if (action === 'h1' || action === 'h2') {
         const p = curPage(); if (!p) return;
-        // Find focused block
         const focused = document.activeElement;
         const blockEl = focused?.closest?.('[data-block-id]');
         if (blockEl) {
@@ -917,7 +919,37 @@ function wire() {
           if (b) { b.type = 'todo'; b.checked = false; touch(p); schedSave(); rerenderBlocks(p); focusBlock(b.id); }
         }
       }
+      if (action === 'normalize') {
+        // Strip all inline formatting from the selection
+        document.execCommand('removeFormat', false, null);
+        document.execCommand('hiliteColor', false, 'transparent');
+        document.execCommand('fontSize', false, '3'); // default size
+        document.execCommand('foreColor', false, 'inherit');
+        persistBlocks();
+      }
     });
+  });
+
+  // Highlight swatches
+  document.getElementById('formatToolbar').querySelectorAll('.hi-swatch').forEach(swatch => {
+    swatch.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const color = swatch.dataset.color;
+      if (color === 'none') {
+        document.execCommand('hiliteColor', false, 'transparent');
+      } else {
+        document.execCommand('hiliteColor', false, color);
+      }
+      persistBlocks();
+    });
+  });
+
+  // Sidebar toggle
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('app').classList.add('sidebar-hidden');
+  });
+  document.getElementById('sidebarReveal').addEventListener('click', () => {
+    document.getElementById('app').classList.remove('sidebar-hidden');
   });
 
   // Close overlays on outside click
