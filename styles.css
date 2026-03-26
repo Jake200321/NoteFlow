@@ -976,6 +976,10 @@ html, body {
 .blk-type-item.active { background: var(--bg-hover); }
 .blk-type-item.active { font-weight: 600; }
 .blk-type-icon { font-size: 14px; width: 18px; text-align: center; }
+.blk-type-sep { height: 1px; background: var(--border); margin: 4px 0; }
+.blk-type-item.danger { color: #e53e3e; }
+.blk-type-item.danger:hover { background: #fff5f5; }
+[data-theme="dark"] .blk-type-item.danger:hover { background: #2d1515; }
 
 /* ── Image context menu ── */
 .img-ctx-menu {

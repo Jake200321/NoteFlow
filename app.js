@@ -1124,21 +1124,28 @@ function showBlkTypeMenu(e, block, page) {
   menu.innerHTML = BLOCK_TYPES.map(t => `
     <button class="blk-type-item${block.type === t.type ? ' active' : ''}" data-type="${t.type}">
       <span class="blk-type-icon">${t.icon}</span>${t.label}
-    </button>`).join('');
+    </button>`).join('') +
+    `<div class="blk-type-sep"></div>
+     <button class="blk-type-item danger" data-type="__delete__">
+       <span class="blk-type-icon">🗑</span>Delete block
+     </button>`;
 
   menu.querySelectorAll('.blk-type-item').forEach(btn => {
     btn.addEventListener('click', () => {
       const type = btn.dataset.type;
       if (_btBlock && _btPage) {
-        if (type === 'divider') {
+        if (type === '__delete__') {
+          const idx = _btPage.blocks.findIndex(b => b.id === _btBlock.id);
+          if (idx !== -1) { _btPage.blocks.splice(idx, 1); touch(_btPage); schedSave(); rerenderBlocks(_btPage); }
+        } else if (type === 'divider') {
           _btBlock.type = 'divider'; _btBlock.content = '';
+          touch(_btPage); schedSave(); rerenderBlocks(_btPage);
         } else {
           _btBlock.type = type;
           if (type === 'todo') _btBlock.checked = false;
+          touch(_btPage); schedSave(); rerenderBlocks(_btPage);
+          if (type !== 'image') focusBlock(_btBlock.id);
         }
-        touch(_btPage); schedSave();
-        rerenderBlocks(_btPage);
-        if (type !== 'divider' && type !== 'image') focusBlock(_btBlock.id);
       }
       hideBlkTypeMenu();
     });
