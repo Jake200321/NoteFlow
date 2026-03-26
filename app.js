@@ -289,8 +289,9 @@ function buildBlockEl(block, page, idx) {
   const content = buildContent(block, page, idx);
   wrap.appendChild(content);
 
-  // Drag-to-reorder — only from the ⠿ handle so normal drags don't conflict
+  // Drag handle: click → block type picker, drag → reorder
   const handle = actions.querySelector('.drag-handle');
+  handle.addEventListener('click', e => showBlkTypeMenu(e, block, page));
   handle.draggable = true;
   handle.addEventListener('dragstart', e => {
     e.dataTransfer.setData('bId', block.id);
@@ -488,10 +489,16 @@ function handleKey(e, el, block, page) {
   if (checkMdShortcut(e, el, block, page)) return;
 
   if (e.key === 'Enter' && !e.shiftKey) {
+    // Regular Enter = line break within the current block
     e.preventDefault();
-    // In heading → switch to paragraph; todo/bullet/numbered → keep type
+    document.execCommand('insertLineBreak');
+    return;
+  }
+
+  if (e.key === 'Enter' && e.shiftKey) {
+    e.preventDefault();
+    // Shift+Enter = new block below
     const nextType = ['heading1','heading2','heading3'].includes(block.type) ? 'paragraph' : block.type;
-    // If block is empty bullet/todo/numbered → convert to paragraph
     if (['todo','bullet','numbered'].includes(block.type) && !el.textContent.trim()) {
       block.type = 'paragraph'; touch(page); schedSave();
       rerenderBlocks(page); focusBlock(block.id); return;
@@ -501,20 +508,11 @@ function handleKey(e, el, block, page) {
   } else if (e.key === 'Backspace') {
     const sel = window.getSelection();
     const atStart = sel.rangeCount > 0 && sel.getRangeAt(0).startOffset === 0 && sel.getRangeAt(0).collapsed;
-    if (atStart) {
-      if (!el.textContent.trim() && page.blocks.length > 1) {
-        e.preventDefault();
-        const idx = page.blocks.findIndex(b => b.id === block.id);
-        const prev = page.blocks[idx - 1];
-        page.blocks.splice(idx, 1);
-        touch(page); schedSave();
-        rerenderBlocks(page);
-        if (prev) focusBlock(prev.id, true);
-      } else if (el.textContent && block.type !== 'paragraph') {
-        e.preventDefault();
-        block.type = 'paragraph'; touch(page); schedSave();
-        rerenderBlocks(page); focusBlock(block.id);
-      }
+    if (atStart && el.textContent && block.type !== 'paragraph') {
+      // Backspace at start of a non-paragraph block → convert type to paragraph
+      e.preventDefault();
+      block.type = 'paragraph'; touch(page); schedSave();
+      rerenderBlocks(page); focusBlock(block.id);
     }
 
   } else if (e.key === 'Tab' && !e.shiftKey) {
@@ -781,6 +779,7 @@ function startRename(id) {
 // ── Global event wiring ───────────────────────────────────
 function wire() {
   wireImgCtxMenu();
+  wireBlkTypeMenu();
 
   // New page
   document.getElementById('newPageBtn').addEventListener('click', newPage);
@@ -1097,6 +1096,75 @@ function wireBlockSel() {
   document.getElementById('blockSelDelete').addEventListener('click', deleteSelBlocks);
   document.getElementById('blockSelDuplicate').addEventListener('click', duplicateSelBlocks);
   document.getElementById('blockSelClear').addEventListener('click', clearBlockSel);
+}
+
+// ── Block type picker (drag handle click) ────────────────
+const BLOCK_TYPES = [
+  { type: 'paragraph', icon: '¶',  label: 'Text' },
+  { type: 'heading1',  icon: 'H1', label: 'Heading 1' },
+  { type: 'heading2',  icon: 'H2', label: 'Heading 2' },
+  { type: 'heading3',  icon: 'H3', label: 'Heading 3' },
+  { type: 'todo',      icon: '☑',  label: 'To-do' },
+  { type: 'bullet',    icon: '•',  label: 'Bullet list' },
+  { type: 'numbered',  icon: '1.', label: 'Numbered list' },
+  { type: 'quote',     icon: '"',  label: 'Quote' },
+  { type: 'code',      icon: '<>', label: 'Code' },
+  { type: 'callout',   icon: '💡', label: 'Callout' },
+  { type: 'divider',   icon: '—',  label: 'Divider' },
+  { type: 'image',     icon: '🖼', label: 'Image' },
+];
+
+let _btBlock = null, _btPage = null;
+
+function showBlkTypeMenu(e, block, page) {
+  e.stopPropagation();
+  _btBlock = block; _btPage = page;
+
+  const menu = document.getElementById('blkTypeMenu');
+  menu.innerHTML = BLOCK_TYPES.map(t => `
+    <button class="blk-type-item${block.type === t.type ? ' active' : ''}" data-type="${t.type}">
+      <span class="blk-type-icon">${t.icon}</span>${t.label}
+    </button>`).join('');
+
+  menu.querySelectorAll('.blk-type-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.type;
+      if (_btBlock && _btPage) {
+        if (type === 'divider') {
+          _btBlock.type = 'divider'; _btBlock.content = '';
+        } else {
+          _btBlock.type = type;
+          if (type === 'todo') _btBlock.checked = false;
+        }
+        touch(_btPage); schedSave();
+        rerenderBlocks(_btPage);
+        if (type !== 'divider' && type !== 'image') focusBlock(_btBlock.id);
+      }
+      hideBlkTypeMenu();
+    });
+  });
+
+  menu.classList.add('visible');
+  const rect = e.currentTarget.getBoundingClientRect();
+  let x = rect.right + 6, y = rect.top;
+  if (x + 190 > window.innerWidth)  x = rect.left - 196;
+  if (y + 330 > window.innerHeight) y = window.innerHeight - 335;
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+}
+
+function hideBlkTypeMenu() {
+  document.getElementById('blkTypeMenu').classList.remove('visible');
+  _btBlock = null; _btPage = null;
+}
+
+function wireBlkTypeMenu() {
+  document.addEventListener('click', e => {
+    if (!document.getElementById('blkTypeMenu').contains(e.target)) hideBlkTypeMenu();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') hideBlkTypeMenu();
+  });
 }
 
 // ── Image context menu ────────────────────────────────────
