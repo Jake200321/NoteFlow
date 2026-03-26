@@ -408,11 +408,59 @@ function placeholder(type) {
 
 function touch(page) { page.updatedAt = now(); }
 
+// ── Undo / Redo ───────────────────────────────────────────
+const MAX_HISTORY = 100;
+const _hist = {}; // pageId → { undo: [], redo: [] }
+let   _textSnapTimer = null;
+
+function _getHist(pageId) {
+  if (!_hist[pageId]) _hist[pageId] = { undo: [], redo: [] };
+  return _hist[pageId];
+}
+
+// Call BEFORE any structural mutation on a page
+function pushHistory(page) {
+  clearTimeout(_textSnapTimer);
+  const h = _getHist(page.id);
+  h.undo.push(JSON.stringify(page.blocks));
+  if (h.undo.length > MAX_HISTORY) h.undo.shift();
+  h.redo = [];
+}
+
+// Debounced snapshot for text input (groups rapid keystrokes)
+function schedTextSnapshot(page) {
+  clearTimeout(_textSnapTimer);
+  _textSnapTimer = setTimeout(() => pushHistory(page), 800);
+}
+
+function undoPage() {
+  const page = S.pages.find(p => p.id === S.currentId);
+  if (!page) return;
+  const h = _getHist(page.id);
+  if (!h.undo.length) return;
+  h.redo.push(JSON.stringify(page.blocks));
+  page.blocks = JSON.parse(h.undo.pop());
+  touch(page); schedSave();
+  rerenderBlocks(page);
+}
+
+function redoPage() {
+  const page = S.pages.find(p => p.id === S.currentId);
+  if (!page) return;
+  const h = _getHist(page.id);
+  if (!h.redo.length) return;
+  h.undo.push(JSON.stringify(page.blocks));
+  page.blocks = JSON.parse(h.redo.pop());
+  touch(page); schedSave();
+  rerenderBlocks(page);
+}
+
 // ── Text block events ─────────────────────────────────────
 function attachTextEvents(el, block, page) {
   el.addEventListener('input', () => {
     block.content = el.innerHTML;
     touch(page); schedSave();
+    schedTextSnapshot(page);
     checkSlash(el, block, page);
   });
   el.addEventListener('keydown', e => handleKey(e, el, block, page));
@@ -500,6 +548,7 @@ function handleKey(e, el, block, page) {
     // Shift+Enter = new block below
     const nextType = ['heading1','heading2','heading3'].includes(block.type) ? 'paragraph' : block.type;
     if (['todo','bullet','numbered'].includes(block.type) && !el.textContent.trim()) {
+      pushHistory(page);
       block.type = 'paragraph'; touch(page); schedSave();
       rerenderBlocks(page); focusBlock(block.id); return;
     }
@@ -509,7 +558,7 @@ function handleKey(e, el, block, page) {
     const sel = window.getSelection();
     const atStart = sel.rangeCount > 0 && sel.getRangeAt(0).startOffset === 0 && sel.getRangeAt(0).collapsed;
     if (atStart && el.textContent && block.type !== 'paragraph') {
-      // Backspace at start of a non-paragraph block → convert type to paragraph
+      pushHistory(page);
       e.preventDefault();
       block.type = 'paragraph'; touch(page); schedSave();
       rerenderBlocks(page); focusBlock(block.id);
@@ -517,6 +566,7 @@ function handleKey(e, el, block, page) {
 
   } else if (e.key === 'Tab' && !e.shiftKey) {
     if (['paragraph','heading1','heading2','heading3'].includes(block.type) && !el.textContent.trim()) {
+      pushHistory(page);
       e.preventDefault();
       block.type = 'bullet'; touch(page); schedSave();
       rerenderBlocks(page); focusBlock(block.id);
@@ -536,6 +586,7 @@ function handleKey(e, el, block, page) {
 
 // ── Block operations ──────────────────────────────────────
 function insertAfter(page, afterId, type, focus=false) {
+  pushHistory(page);
   const idx = page.blocks.findIndex(b => b.id === afterId);
   const nb  = mkBlock(type);
   page.blocks.splice(idx + 1, 0, nb);
@@ -550,6 +601,7 @@ function moveBlockBefore(page, fromId, toId) {
   const fi = bl.findIndex(b => b.id === fromId);
   const ti = bl.findIndex(b => b.id === toId);
   if (fi < 0 || ti < 0) return;
+  pushHistory(page);
   const [blk] = bl.splice(fi, 1);
   bl.splice(ti > fi ? ti - 1 : ti, 0, blk);
   touch(page); schedSave();
@@ -780,6 +832,13 @@ function startRename(id) {
 function wire() {
   wireImgCtxMenu();
   wireBlkTypeMenu();
+
+  // Global undo / redo
+  document.addEventListener('keydown', e => {
+    if (!(e.metaKey || e.ctrlKey)) return;
+    if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undoPage(); }
+    if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); redoPage(); }
+  });
 
   // New page
   document.getElementById('newPageBtn').addEventListener('click', newPage);
@@ -1018,6 +1077,7 @@ function showSelBar() {
 function deleteSelBlocks() {
   const p = curPage(); if (!p) return;
   const r = getSelRange(); if (!r) return;
+  pushHistory(p);
   const ids = new Set(r.wraps.slice(r.lo, r.hi + 1).map(w => w.dataset.blockId));
   const focusTarget = p.blocks[Math.max(0, r.lo - 1)]?.id;
   p.blocks = p.blocks.filter(b => !ids.has(b.id));
@@ -1031,6 +1091,7 @@ function deleteSelBlocks() {
 function duplicateSelBlocks() {
   const p = curPage(); if (!p) return;
   const r = getSelRange(); if (!r) return;
+  pushHistory(p);
   const ids = r.wraps.slice(r.lo, r.hi + 1).map(w => w.dataset.blockId);
   const clones = ids
     .map(id => p.blocks.find(b => b.id === id))
@@ -1134,6 +1195,7 @@ function showBlkTypeMenu(e, block, page) {
     btn.addEventListener('click', () => {
       const type = btn.dataset.type;
       if (_btBlock && _btPage) {
+        pushHistory(_btPage);
         if (type === '__delete__') {
           const idx = _btPage.blocks.findIndex(b => b.id === _btBlock.id);
           if (idx !== -1) { _btPage.blocks.splice(idx, 1); touch(_btPage); schedSave(); rerenderBlocks(_btPage); }
@@ -1205,6 +1267,7 @@ function wireImgCtxMenu() {
   // Delete image block entirely
   document.getElementById('imgCtxDelete').addEventListener('click', () => {
     if (!_imgCtxBlock || !_imgCtxPage) return;
+    pushHistory(_imgCtxPage);
     const idx = _imgCtxPage.blocks.findIndex(b => b.id === _imgCtxBlock.id);
     if (idx !== -1) {
       _imgCtxPage.blocks.splice(idx, 1);
