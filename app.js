@@ -986,7 +986,6 @@ function wire() {
         document.execCommand('removeFormat', false, null);
         document.execCommand('hiliteColor', false, 'transparent');
         document.execCommand('fontSize', false, '3'); // default size
-        document.execCommand('foreColor', false, 'inherit');
         persistBlocks();
       }
     });
