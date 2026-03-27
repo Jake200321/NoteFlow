@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, MenuItem } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -16,13 +16,53 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      spellcheck: true,
     },
     backgroundColor: '#ffffff',
     show: false,
   });
 
   mainWindow.loadFile('index.html');
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    // Set spell checker to English
+    mainWindow.webContents.session.setSpellCheckerLanguages(['en-US', 'en-GB']);
+  });
+
+  // Right-click context menu with spell-check suggestions
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    // Only show spell menu when right-clicking inside editable content
+    if (!params.isEditable) return;
+
+    const menu = new Menu();
+
+    // Spelling suggestions at the top
+    if (params.misspelledWord) {
+      if (params.dictionarySuggestions.length > 0) {
+        params.dictionarySuggestions.forEach(suggestion => {
+          menu.append(new MenuItem({
+            label: suggestion,
+            click: () => mainWindow.webContents.replaceMisspelling(suggestion),
+          }));
+        });
+      } else {
+        menu.append(new MenuItem({ label: 'No suggestions', enabled: false }));
+      }
+      menu.append(new MenuItem({ type: 'separator' }));
+      menu.append(new MenuItem({
+        label: 'Add to Dictionary',
+        click: () => mainWindow.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord),
+      }));
+      menu.append(new MenuItem({ type: 'separator' }));
+    }
+
+    // Standard edit actions
+    menu.append(new MenuItem({ role: 'cut',   label: 'Cut' }));
+    menu.append(new MenuItem({ role: 'copy',  label: 'Copy' }));
+    menu.append(new MenuItem({ role: 'paste', label: 'Paste' }));
+
+    menu.popup({ window: mainWindow });
+  });
 }
 
 app.whenReady().then(createWindow);
