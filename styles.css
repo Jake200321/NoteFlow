@@ -981,6 +981,122 @@ html, body {
 .blk-type-item.danger:hover { background: #fff5f5; }
 [data-theme="dark"] .blk-type-item.danger:hover { background: #2d1515; }
 
+/* ── Links inside blocks ── */
+.block a, .todo-text a, .callout-text a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.block a:hover, .todo-text a:hover, .callout-text a:hover {
+  opacity: 0.75;
+}
+
+/* ── Link popup ── */
+.link-popup {
+  position: fixed;
+  z-index: 2100;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  box-shadow: var(--shadow-lg);
+  display: none;
+  min-width: 340px;
+}
+.link-popup.visible { display: block; }
+.link-popup-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.link-popup-icon { font-size: 14px; flex-shrink: 0; }
+.link-popup-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  min-width: 0;
+}
+.link-popup-input::placeholder { color: var(--text-secondary); }
+.link-popup-apply {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.link-popup-apply:hover { opacity: 0.85; }
+.link-popup-remove {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.link-popup-remove:hover { background: var(--bg-hover); color: #e53e3e; }
+
+/* ── Paste-URL toast ── */
+.url-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 1800;
+  white-space: nowrap;
+}
+.url-toast.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+.url-toast-text { color: var(--text-secondary); max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.url-toast-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.url-toast-btn:hover { opacity: 0.85; }
+.url-toast-dismiss {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.url-toast-dismiss:hover { background: var(--bg-hover); }
+
 /* ── Image context menu ── */
 .img-ctx-menu {
   position: fixed;

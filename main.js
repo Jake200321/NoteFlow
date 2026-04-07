@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, MenuItem } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, MenuItem, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -74,6 +74,8 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
+
+ipcMain.handle('open-external', (_, url) => shell.openExternal(url));
 
 const dataFile = path.join(app.getPath('userData'), 'noteflow-data.json');
 

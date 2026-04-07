@@ -145,6 +145,7 @@
       <button class="hi-swatch hi-none"  data-color="none"    title="Remove highlight">✕</button>
     </div>
     <div class="fmt-sep"></div>
+    <button class="fmt-btn" data-action="link" title="Insert link">⌘K</button>
     <button class="fmt-btn" data-action="normalize" title="Clear all formatting">Aa</button>
     <div class="fmt-sep"></div>
     <button class="fmt-btn" data-action="h1"   title="Heading 1">H1</button>
@@ -162,6 +163,23 @@
 
   <!-- ── Block type picker (drag handle click) ── -->
   <div class="blk-type-menu" id="blkTypeMenu"></div>
+
+  <!-- ── Link popup ── -->
+  <div class="link-popup" id="linkPopup">
+    <div class="link-popup-row">
+      <span class="link-popup-icon">🔗</span>
+      <input class="link-popup-input" id="linkPopupInput" type="url" placeholder="Paste or type a URL…" spellcheck="false">
+      <button class="link-popup-apply" id="linkPopupApply">Apply</button>
+      <button class="link-popup-remove" id="linkPopupRemove" title="Remove link">✕</button>
+    </div>
+  </div>
+
+  <!-- ── Paste-URL embed toast ── -->
+  <div class="url-toast" id="urlToast">
+    <span class="url-toast-text" id="urlToastText"></span>
+    <button class="url-toast-btn" id="urlToastEmbed">Embed as link</button>
+    <button class="url-toast-dismiss" id="urlToastDismiss">✕</button>
+  </div>
 
   <!-- ── Image context menu ── -->
   <div class="img-ctx-menu" id="imgCtxMenu">

@@ -466,6 +466,15 @@ function attachTextEvents(el, block, page) {
   el.addEventListener('keydown', e => handleKey(e, el, block, page));
   el.addEventListener('mouseup', handleSel);
   el.addEventListener('keyup',   handleSel);
+  // Detect pasted raw URLs on otherwise-empty blocks
+  el.addEventListener('paste', () => {
+    setTimeout(() => {
+      const text = el.textContent.trim();
+      if (isUrl(text) && !el.innerHTML.includes('<a ')) {
+        showUrlToast(text, block, page);
+      }
+    }, 0);
+  });
 }
 
 function checkSlash(el, block, page) {
@@ -757,6 +766,129 @@ function handleSel() {
 
 function hideToolbar() { document.getElementById('formatToolbar').classList.remove('show'); }
 
+// ── Link popup ────────────────────────────────────────────
+let _linkSavedRange = null;
+let _urlToastBlock  = null;
+let _urlToastPage   = null;
+let _urlToastTimer  = null;
+
+const isUrl = s => /^https?:\/\/.{3,}/i.test(s.trim());
+
+function showLinkPopup() {
+  // Save selection so we can restore it when applying
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount > 0) _linkSavedRange = sel.getRangeAt(0).cloneRange();
+
+  const popup = document.getElementById('linkPopup');
+  const input = document.getElementById('linkPopupInput');
+
+  // Pre-fill if the selection itself looks like a URL
+  const selText = sel?.toString().trim() || '';
+  input.value = isUrl(selText) ? selText : '';
+
+  popup.classList.add('visible');
+
+  // Position just below the format toolbar
+  const tb = document.getElementById('formatToolbar');
+  const tbR = tb.getBoundingClientRect();
+  let left = tbR.left;
+  let top  = tbR.bottom + 6;
+  if (left + 360 > window.innerWidth) left = window.innerWidth - 368;
+  popup.style.left = left + 'px';
+  popup.style.top  = top  + 'px';
+
+  setTimeout(() => input.focus(), 30);
+}
+
+function hideLinkPopup() {
+  document.getElementById('linkPopup').classList.remove('visible');
+  document.getElementById('linkPopupInput').value = '';
+  _linkSavedRange = null;
+}
+
+function applyLink() {
+  const url = document.getElementById('linkPopupInput').value.trim();
+  if (!url) { hideLinkPopup(); return; }
+  const href = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+
+  if (_linkSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_linkSavedRange);
+  }
+  document.execCommand('createLink', false, href);
+  persistBlocks();
+  hideLinkPopup();
+  hideToolbar();
+}
+
+function removeLink() {
+  if (_linkSavedRange) {
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_linkSavedRange);
+  }
+  document.execCommand('unlink', false, null);
+  persistBlocks();
+  hideLinkPopup();
+}
+
+function wireLinkPopup() {
+  document.getElementById('linkPopupApply').addEventListener('mousedown', e => { e.preventDefault(); applyLink(); });
+  document.getElementById('linkPopupRemove').addEventListener('mousedown', e => { e.preventDefault(); removeLink(); });
+  document.getElementById('linkPopupInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); applyLink(); }
+    if (e.key === 'Escape') { e.preventDefault(); hideLinkPopup(); }
+  });
+  // Close on outside click
+  document.addEventListener('mousedown', e => {
+    if (!document.getElementById('linkPopup').contains(e.target) &&
+        !document.getElementById('formatToolbar').contains(e.target)) {
+      hideLinkPopup();
+    }
+  });
+
+  // Clicks on <a> tags inside blocks → open in browser
+  document.getElementById('blocksContainer').addEventListener('click', e => {
+    const a = e.target.closest('a[href]');
+    if (a && window.electronAPI) {
+      e.preventDefault();
+      window.electronAPI.openExternal(a.href);
+    }
+  });
+}
+
+// ── Paste-URL toast ───────────────────────────────────────
+function showUrlToast(url, block, page) {
+  _urlToastBlock = block;
+  _urlToastPage  = page;
+  const toast = document.getElementById('urlToast');
+  document.getElementById('urlToastText').textContent = url;
+  toast.classList.add('visible');
+  clearTimeout(_urlToastTimer);
+  _urlToastTimer = setTimeout(hideUrlToast, 6000);
+}
+
+function hideUrlToast() {
+  document.getElementById('urlToast').classList.remove('visible');
+  _urlToastBlock = null; _urlToastPage = null;
+}
+
+function wireUrlToast() {
+  document.getElementById('urlToastEmbed').addEventListener('click', () => {
+    if (!_urlToastBlock || !_urlToastPage) return;
+    const el = document.querySelector(`.block[data-block-id="${_urlToastBlock.id}"]`);
+    const url = el?.textContent?.trim();
+    if (url && el) {
+      el.innerHTML = `<a href="${url}">${url}</a>`;
+      _urlToastBlock.content = el.innerHTML;
+      persistBlocks();
+    }
+    hideUrlToast();
+  });
+  document.getElementById('urlToastDismiss').addEventListener('click', hideUrlToast);
+}
+
 function persistBlocks() {
   const p = curPage(); if (!p) return;
   p.blocks.forEach(b => {
@@ -832,12 +964,15 @@ function startRename(id) {
 function wire() {
   wireImgCtxMenu();
   wireBlkTypeMenu();
+  wireLinkPopup();
+  wireUrlToast();
 
-  // Global undo / redo
+  // Global undo / redo / link
   document.addEventListener('keydown', e => {
     if (!(e.metaKey || e.ctrlKey)) return;
     if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undoPage(); }
     if ((e.key === 'z' && e.shiftKey) || e.key === 'y') { e.preventDefault(); redoPage(); }
+    if (e.key === 'k') { e.preventDefault(); showLinkPopup(); }
   });
 
   // New page
@@ -980,6 +1115,10 @@ function wire() {
           const b = p.blocks.find(bl => bl.id === blockEl.dataset.blockId);
           if (b) { b.type = 'todo'; b.checked = false; touch(p); schedSave(); rerenderBlocks(p); focusBlock(b.id); }
         }
+      }
+      if (action === 'link') {
+        showLinkPopup();
+        return;
       }
       if (action === 'normalize') {
         // Strip all inline formatting from the selection
