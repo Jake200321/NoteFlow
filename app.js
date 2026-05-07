@@ -276,36 +276,40 @@ function buildBlockEl(block, page, idx) {
   wrap.className = 'block-wrap';
   wrap.dataset.blockId = block.id;
 
-  // Side actions
+  // Side actions — only shown for special blocks, not plain paragraphs
+  const isParagraph = block.type === 'paragraph';
   const actions = document.createElement('div');
   actions.className = 'block-actions';
   actions.innerHTML = `
     <button class="block-action-btn drag-handle" title="Drag to reorder">⠿</button>
     <button class="block-action-btn add-btn"     title="Add block below">+</button>`;
-  wrap.appendChild(actions);
-  actions.querySelector('.add-btn').addEventListener('click', () => insertAfter(page, block.id, 'paragraph', true));
+  if (!isParagraph) wrap.appendChild(actions);
+  if (!isParagraph) {
+    actions.querySelector('.add-btn').addEventListener('click', () => insertAfter(page, block.id, 'paragraph', true));
+  }
 
   // Content
   const content = buildContent(block, page, idx);
   wrap.appendChild(content);
 
-  // Drag handle: click → block type picker, drag → reorder
-  const handle = actions.querySelector('.drag-handle');
-  handle.addEventListener('click', e => showBlkTypeMenu(e, block, page));
-  handle.draggable = true;
-  handle.addEventListener('dragstart', e => {
-    e.dataTransfer.setData('bId', block.id);
-    wrap.classList.add('dragging');
-  });
-  handle.addEventListener('dragend', () => wrap.classList.remove('dragging'));
-  wrap.addEventListener('dragover',  e => { e.preventDefault(); wrap.classList.add('drag-over'); });
-  wrap.addEventListener('dragleave', () => wrap.classList.remove('drag-over'));
-  wrap.addEventListener('drop', e => {
-    e.preventDefault();
-    wrap.classList.remove('drag-over');
-    const from = e.dataTransfer.getData('bId');
-    if (from && from !== block.id) moveBlockBefore(page, from, block.id);
-  });
+  // Drag handle: click → block type picker, drag → reorder (special blocks only)
+  if (handle) {
+    handle.addEventListener('click', e => showBlkTypeMenu(e, block, page));
+    handle.draggable = true;
+    handle.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('bId', block.id);
+      wrap.classList.add('dragging');
+    });
+    handle.addEventListener('dragend', () => wrap.classList.remove('dragging'));
+    wrap.addEventListener('dragover',  e => { e.preventDefault(); wrap.classList.add('drag-over'); });
+    wrap.addEventListener('dragleave', () => wrap.classList.remove('drag-over'));
+    wrap.addEventListener('drop', e => {
+      e.preventDefault();
+      wrap.classList.remove('drag-over');
+      const from = e.dataTransfer.getData('bId');
+      if (from && from !== block.id) moveBlockBefore(page, from, block.id);
+    });
+  }
   return wrap;
 }
 
@@ -545,23 +549,38 @@ function handleKey(e, el, block, page) {
   // Markdown shortcuts (run before Enter/Space default handling)
   if (checkMdShortcut(e, el, block, page)) return;
 
-  if (e.key === 'Enter' && !e.shiftKey) {
-    // Regular Enter = line break within the current block
+  if (e.key === 'Enter') {
     e.preventDefault();
-    document.execCommand('insertLineBreak');
-    return;
-  }
 
-  if (e.key === 'Enter' && e.shiftKey) {
-    e.preventDefault();
-    // Shift+Enter = new block below
-    const nextType = ['heading1','heading2','heading3'].includes(block.type) ? 'paragraph' : block.type;
-    if (['todo','bullet','numbered'].includes(block.type) && !el.textContent.trim()) {
-      pushHistory(page);
-      block.type = 'paragraph'; touch(page); schedSave();
-      rerenderBlocks(page); focusBlock(block.id); return;
+    if (block.type === 'paragraph') {
+      // ── Plain writing: Enter always starts a new paragraph ──
+      insertAfter(page, block.id, 'paragraph', true);
+      return;
     }
-    insertAfter(page, block.id, nextType, true);
+
+    const isList = ['todo','bullet','numbered'].includes(block.type);
+
+    if (e.shiftKey) {
+      // ── Inside a special block: Shift+Enter = stay in block ──
+      if (isList) {
+        // Empty list item + Shift+Enter → exit to paragraph
+        if (!el.textContent.trim()) {
+          pushHistory(page);
+          block.type = 'paragraph'; touch(page); schedSave();
+          rerenderBlocks(page); focusBlock(block.id);
+        } else {
+          // New item of same list type
+          insertAfter(page, block.id, block.type, true);
+        }
+      } else {
+        // Heading, quote, code, callout: insert a newline within
+        document.execCommand('insertLineBreak');
+      }
+    } else {
+      // ── Inside a special block: Enter = exit to paragraph ──
+      insertAfter(page, block.id, 'paragraph', true);
+    }
+    return;
 
   } else if (e.key === 'Backspace') {
     const sel = window.getSelection();

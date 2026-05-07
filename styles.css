@@ -758,8 +758,16 @@ html, body {
   word-break: break-word;
   transition: background var(--ease);
 }
-.block:hover   { background: var(--bg-hover); }
-.block:focus   { background: transparent !important; }
+/* Special blocks get a subtle hover tint; plain paragraphs do not */
+.block:not(.block-paragraph):hover { background: var(--bg-hover); }
+.block:focus { background: transparent !important; }
+
+/* Paragraph blocks feel like page text — no padding gap, no border radius chrome */
+.block-paragraph {
+  padding: 1px 4px;
+  border-radius: 0;
+  margin-bottom: 0.15em;
+}
 
 /* Shared placeholder — always visible on empty blocks */
 .block[data-placeholder]:empty::before,
